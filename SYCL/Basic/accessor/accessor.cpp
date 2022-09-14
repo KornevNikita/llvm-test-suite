@@ -60,6 +60,51 @@ template <typename Acc> struct Wrapper2 {
 
 template <typename Acc> struct Wrapper3 { Wrapper2<Acc> w2; };
 
+template <typename T> void TestAccSizeFuncs(const std::vector<T> &vec) {
+  std::vector<size_t> res(vec.size()), locRes(vec.size());
+  try {
+    sycl::queue q;
+    sycl::buffer<T> buf(vec.data(), vec.size());
+    sycl::buffer<size_t> bufRes(res.data(), res.size());
+    sycl::buffer<size_t> bufLocRes(locRes.data(), locRes.size());
+
+    q.submit([&](sycl::handler &cgh) {
+      auto acc = buf.template get_access<sycl::access::mode::read>(cgh);
+      auto accRes = bufRes.get_access<sycl::access::mode::write>(cgh);
+      auto accLocRes = bufLocRes.get_access<sycl::access::mode::write>(cgh);
+      sycl::local_accessor<T, 1> localAcc(vec.size(), cgh);
+      cgh.single_task([=]() {
+        accRes[0] = acc.byte_size();
+        accRes[1] = acc.size();
+        accRes[2] = acc.max_size();
+        accRes[3] = size_t(acc.empty());
+        accLocRes[0] = localAcc.byte_size();
+        accLocRes[1] = localAcc.size();
+        accLocRes[2] = localAcc.max_size();
+        accLocRes[3] = size_t(localAcc.empty());
+      });
+    });
+    q.wait();
+
+    auto acc = buf.template get_access<sycl::access::mode::read>();
+    assert(acc.byte_size() == vec.size() * sizeof(T));
+    assert(acc.size() == vec.size());
+    assert(acc.max_size() == vec.max_size());
+    assert(acc.empty() == vec.empty());
+  } catch (sycl::exception &e) {
+    std::cout << e.what() << std::endl;
+  }
+
+  assert(locRes[0] == vec.size() * sizeof(T));
+  assert(locRes[1] == vec.size());
+  assert(locRes[2] == vec.max_size());
+  assert(locRes[3] == vec.empty());
+  assert(res[0] == vec.size() * sizeof(T));
+  assert(res[1] == vec.size());
+  assert(res[2] == vec.max_size());
+  assert(res[3] == vec.empty());
+}
+
 int main() {
   // Host accessor.
   {
@@ -768,6 +813,74 @@ int main() {
       q.wait();
     } catch (sycl::exception e) {
       std::cout << "SYCL exception caught: " << e.what() << std::endl;
+    }
+  }
+
+  // Test byte_size(), size(), max_size(), empty()
+  {
+    std::vector<char> vecChar(64, 'a');
+    std::vector<int> vecInt(32, 1);
+    std::vector<float> vecFloat(16, 1.0);
+    std::vector<IdxID3> vecCustom(8, {0, 0, 0});
+    TestAccSizeFuncs(vecChar);
+    TestAccSizeFuncs(vecInt);
+    TestAccSizeFuncs(vecFloat);
+    TestAccSizeFuncs(vecCustom);
+  }
+  // Test swap() on host_accessor
+  {
+    std::vector<int> vec1(8), vec2(16);
+    try {
+      sycl::buffer<int> buf1(vec1.data(), vec1.size());
+      sycl::buffer<int> buf2(vec2.data(), vec2.size());
+      auto acc1 = buf1.get_access<sycl::access::mode::read_write>();
+      auto acc2 = buf2.get_access<sycl::access::mode::read_write>();
+      acc1.swap(acc2);
+      acc1[15] = acc2[7] = 4;
+    } catch (sycl::exception &e) {
+      std::cout << e.what() << std::endl;
+    }
+    assert(vec1[7] == 4 && vec2[15] == 4);
+  }
+  // Test swap() on basic accessor
+  {
+    std::vector<int> vec1(8), vec2(16);
+    try {
+      sycl::buffer<int> buf1(vec1.data(), vec1.size());
+      sycl::buffer<int> buf2(vec2.data(), vec2.size());
+      sycl::queue q;
+      q.submit([&](sycl::handler &cgh) {
+        auto acc1 = buf1.get_access<sycl::access::mode::read_write>(cgh);
+        auto acc2 = buf2.get_access<sycl::access::mode::read_write>(cgh);
+        acc1.swap(acc2);
+        cgh.single_task([=]() { acc1[15] = acc2[7] = 4; });
+      });
+    } catch (sycl::exception &e) {
+      std::cout << e.what() << std::endl;
+    }
+    assert(vec1[7] == 4 && vec2[15] == 4);
+  }
+  // Test swap on local_accessor
+  {
+    std::vector<int> vec1(8), vec2(8);
+    try {
+      sycl::buffer<int> buf1(vec1.data(), vec1.size());
+      sycl::buffer<int> buf2(vec2.data(), vec2.size());
+
+      sycl::queue q;
+      q.submit([&](sycl::handler &cgh) {
+        sycl::local_accessor<int, 1> locAcc1(8, cgh), locAcc2(8, cgh);
+        // shouldn't fail
+        locAcc1.swap(locAcc2);
+        cgh.single_task([=]() {
+          for (size_t i = 0; i < 8; ++i) {
+            locAcc1[i] = 2;
+            locAcc2[i] = 4;
+          }
+        });
+      });
+    } catch (sycl::exception &e) {
+      std::cout << e.what() << std::endl;
     }
   }
 
