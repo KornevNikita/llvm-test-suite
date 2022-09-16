@@ -89,7 +89,9 @@ template <typename T> void TestAccSizeFuncs(const std::vector<T> &vec) {
     auto acc = buf.template get_access<sycl::access::mode::read>();
     assert(acc.byte_size() == vec.size() * sizeof(T));
     assert(acc.size() == vec.size());
-    assert(acc.max_size() == vec.max_size());
+    assert(acc.max_size() ==
+           std::numeric_limits<
+               typename sycl::host_accessor<T>::difference_type>::max());
     assert(acc.empty() == vec.empty());
   } catch (sycl::exception &e) {
     std::cout << e.what() << std::endl;
@@ -97,11 +99,15 @@ template <typename T> void TestAccSizeFuncs(const std::vector<T> &vec) {
 
   assert(locRes[0] == vec.size() * sizeof(T));
   assert(locRes[1] == vec.size());
-  assert(locRes[2] == vec.max_size());
+  assert(locRes[2] ==
+         std::numeric_limits<
+             typename sycl::local_accessor<T>::difference_type>::max());
   assert(locRes[3] == vec.empty());
   assert(res[0] == vec.size() * sizeof(T));
   assert(res[1] == vec.size());
-  assert(res[2] == vec.max_size());
+  assert(
+      res[2] ==
+      std::numeric_limits<typename sycl::accessor<T>::difference_type>::max());
   assert(res[3] == vec.empty());
 }
 
