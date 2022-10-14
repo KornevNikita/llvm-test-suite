@@ -7,10 +7,10 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu-intel-pvc || esimd_emulator
 // UNSUPPORTED: cuda || hip
-// RUN: %clangxx -fsycl -DESIMD_XE_HPC %s -o %t.out
+// RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
-#include "../esimd_test_utils.hpp"
+#include "../../esimd_test_utils.hpp"
 
 #include <iostream>
 #include <sycl/ext/intel/esimd.hpp>
@@ -23,7 +23,7 @@ int main(void) {
   constexpr unsigned VL = 16;
   constexpr unsigned GroupSize = 1;
 
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";

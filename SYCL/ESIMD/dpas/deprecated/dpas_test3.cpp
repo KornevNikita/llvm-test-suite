@@ -7,8 +7,8 @@
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu-intel-pvc || esimd_emulator
 // UNSUPPORTED: cuda || hip
-// RUN: %clangxx -fsycl -DESIMD_XE_HPC %s -DVER1 -o %t.out1
-// RUN: %clangxx -fsycl -DESIMD_XE_HPC %s -DVER2 -o %t.out2
+// RUN: %clangxx -fsycl %s -DVER1 -o %t.out1
+// RUN: %clangxx -fsycl %s -DVER2 -o %t.out2
 // RUN: %GPU_RUN_PLACEHOLDER %t.out1
 // RUN: %GPU_RUN_PLACEHOLDER %t.out2
 
@@ -94,7 +94,7 @@ void dpas_ker(nd_item<1> &idx, BF16 *matA, BF16 *matB, float *matC) {
 
 int main() {
   // A [8][16] * B[16][16]= C[8][16]
-  queue q(gpu_selector{});
+  queue q(gpu_selector_v);
   nd_range<1> Range(range<1>{1}, range<1>{1});
   constexpr int MB = 8;
   constexpr int NB = 16; // KB = NB = 16 in pvc

@@ -185,7 +185,7 @@ if config.opencl_libs_dir:
 config.substitutions.append( ('%opencl_include_dir',  config.opencl_include_dir) )
 
 if cl_options:
-    config.substitutions.append( ('%sycl_options',  ' ' + config.sycl_libs_dir + '/../lib/sycl.lib /I' +
+    config.substitutions.append( ('%sycl_options',  ' ' + config.sycl_libs_dir + '/../lib/sycl6.lib /I' +
                                 config.sycl_include + ' /I' + os.path.join(config.sycl_include, 'sycl')) )
     config.substitutions.append( ('%include_option',  '/FI' ) )
     config.substitutions.append( ('%debug_option',  '/DEBUG' ) )
@@ -193,9 +193,10 @@ if cl_options:
     config.substitutions.append( ('%fPIC', '') )
     config.substitutions.append( ('%shared_lib', '/LD') )
 else:
-    config.substitutions.append( ('%sycl_options', ' -lsycl -I' +
-                                config.sycl_include + ' -I' + os.path.join(config.sycl_include, 'sycl') +
-                                ' -L' + config.sycl_libs_dir) )
+    config.substitutions.append( ('%sycl_options',
+                                  (' -lsycl6' if platform.system() == "Windows" else " -lsycl") + ' -I' +
+                                  config.sycl_include + ' -I' + os.path.join(config.sycl_include, 'sycl') +
+                                  ' -L' + config.sycl_libs_dir) )
     config.substitutions.append( ('%include_option',  '-include' ) )
     config.substitutions.append( ('%debug_option',  '-g' ) )
     config.substitutions.append( ('%cxx_std_option',  '-std=' ) )
@@ -348,6 +349,13 @@ if 'gpu' in config.target_devices.split(','):
         if lit_config.params.get('ze_debug'):
             gpu_run_substitute = " env ZE_DEBUG={ZE_DEBUG} SYCL_DEVICE_FILTER=level_zero:gpu ".format(ZE_DEBUG=config.ze_debug)
             config.available_features.add('ze_debug'+config.ze_debug)
+    elif config.sycl_be == "ext_intel_esimd_emulator":
+        # ESIMD_EMULATOR backend uses CM_EMU library package for
+        # multi-threaded execution on CPU, and the package emulates
+        # multiple target platforms. In case user does not specify
+        # what target platform to emulate, 'skl' is chosen by default.
+        if not "CM_RT_PLATFORM" in os.environ:
+            gpu_run_substitute += "CM_RT_PLATFORM=skl "
 
     if platform.system() == "Linux":
         gpu_run_on_linux_substitute = "env SYCL_DEVICE_FILTER={SYCL_PLUGIN}:gpu ".format(SYCL_PLUGIN=config.sycl_be)
@@ -430,7 +438,7 @@ for aot_tool in aot_tools:
     else:
         lit_config.warning("Couldn't find pre-installed AOT device compiler " + aot_tool)
 
-# Set timeout for test 1 min
+# Set timeout for a single test
 try:
     import psutil
     lit_config.maxIndividualTestTime = 600

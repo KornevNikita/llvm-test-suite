@@ -27,7 +27,7 @@ int main() {
   auto constexpr SIMDSize = unsigned{4};
 
   auto q =
-      queue{esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler()};
+      queue{esimd_test::ESIMDSelector, esimd_test::createExceptionHandler()};
   auto device = q.get_device();
   std::cout << "Device name: " << device.get_info<sycl::info::device::name>()
             << std::endl;
@@ -69,8 +69,8 @@ int main() {
 
             lsc_atomic_update<atomic_op::inc, int>(vec_2, offsets, pred);
             lsc_atomic_update<atomic_op::add, int>(vec_3, offsets, add, pred);
-            lsc_atomic_update<atomic_op::cmpxchg, int>(vec_4, offsets, swap,
-                                                       compare, pred);
+            lsc_atomic_update<atomic_op::cmpxchg, int>(vec_4, offsets, compare,
+                                                       swap, pred);
           });
     });
     q.wait();

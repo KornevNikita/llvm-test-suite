@@ -5,9 +5,6 @@
 // RUN: %clangxx -fsycl -fno-sycl-dead-args-optimization %s -o %t.noopt.out
 // RUN: env XPTI_TRACE_ENABLE=1 XPTI_FRAMEWORK_DISPATCHER=%xptifw_dispatcher XPTI_SUBSCRIBERS=%t_collector.dll %BE_RUN_PLACEHOLDER %t.noopt.out | FileCheck %s --check-prefix=CHECK-NOOPT
 
-// Temporarily disable for CPU due to environment-specific failures.
-// UNSUPPORTED: cpu
-
 #ifdef XPTI_COLLECTOR
 
 #include "../Inputs/buffer_info_collector.cpp"
@@ -32,8 +29,8 @@ int main() {
 
     auto sumR = reduction(sumBuf, cgh, plus<>());
     // Reduction kernel is used
-    // CHECK-OPT:Node create|{{.*}}reduction{{.*}}test1{{.*}}|{{.*}}.cpp:[[# @LINE - 5 ]]:3|{1024, 1, 1}, {{{.*}}, 1, 1}, {0, 0, 0}, 7
-    // CHECK-NOOPT:Node create|{{.*}}reduction{{.*}}test1{{.*}}|{{.*}}.cpp:[[# @LINE - 6 ]]:3|{1024, 1, 1}, {{{.*}}, 1, 1}, {0, 0, 0}, 15
+    // CHECK-OPT:Node create|{{.*}}reduction{{.*}}test1{{.*}}|{{.*}}.cpp:[[# @LINE - 5 ]]:3|{{{.*}}, 1, 1}, {{{.*}}, 1, 1}, {0, 0, 0}, 14
+    // CHECK-NOOPT:Node create|{{.*}}reduction{{.*}}test1{{.*}}|{{.*}}.cpp:[[# @LINE - 6 ]]:3|{{{.*}}, 1, 1}, {{{.*}}, 1, 1}, {0, 0, 0}, 26
     cgh.parallel_for<class test1>(
         range<1>{1024}, sumR,
         [=](id<1> idx, auto &sum) { sum += inputValues[idx]; });

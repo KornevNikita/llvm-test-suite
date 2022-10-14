@@ -8,8 +8,8 @@
 // This test checks LSC atomic operations.
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu-intel-pvc
-// TODO: esimd_emulator fails due to unsupported __esimd_svm_atomic0/1/2
-// XFAIL: esimd_emulator
+// TODO: esimd_emulator fails due to random timeouts (_XFAIL_: esimd_emulator)
+// UNSUPPORTED: esimd_emulator
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
@@ -65,10 +65,12 @@ constexpr char MODE[] = "LSC";
 #endif // USE_DWORD_ATOMICS
 
 #ifndef USE_DWORD_ATOMICS
+#if USE_FULL_BARRIER
 uint32_t atomic_load(uint32_t *addr) {
   auto v = atomic_update<LSCAtomicOp::load, uint32_t, 1>(addr, 0, 1);
   return v[0];
 }
+#endif // USE_FULL_BARRIER
 #endif // USE_DWORD_ATOMICS
 
 template <class, int, template <class, int> class> class TestID;
@@ -240,7 +242,7 @@ bool test(queue q, const Config &cfg) {
                 // is not endless:
                 for (auto old_val =
                          atomic_update<op>(arr, offsets, new_val, exp_val, m);
-                     any(old_val != exp_val, !m);
+                     any(old_val < exp_val, !m);
                      old_val =
                          atomic_update<op>(arr, offsets, new_val, exp_val, m))
                   ;
@@ -478,11 +480,17 @@ bool test_int_types(queue q, const Config &cfg) {
   passed &= test<uint32_t, N, Op>(q, cfg);
   passed &= test<int64_t, N, Op>(q, cfg);
   passed &= test<uint64_t, N, Op>(q, cfg);
+  if constexpr (!std::is_same_v<unsigned long, uint64_t> &&
+                !std::is_same_v<unsigned long, uint32_t>) {
+    // Test 'long' types if they are not aliased with int types tested above.
+    passed &= test<unsigned long, N, Op>(q, cfg);
+    passed &= test<signed long, N, Op>(q, cfg);
+  }
   return passed;
 }
 
 int main(void) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";

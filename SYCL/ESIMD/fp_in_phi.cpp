@@ -69,7 +69,7 @@ bool test(queue q, bool flag) {
     });
   } catch (sycl::exception const &e) {
     std::cout << "SYCL exception caught: " << e.what() << std::endl;
-    return e.get_cl_code();
+    return false;
   }
 
   int etalon = in1 + (flag ? 3 : 1) + in2 + 2;
@@ -83,7 +83,7 @@ bool test(queue q, bool flag) {
 }
 
 int main(int argc, char **argv) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
   auto dev = q.get_device();
   std::cout << "Running on " << dev.get_info<info::device::name>() << "\n";

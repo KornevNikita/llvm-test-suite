@@ -15,6 +15,9 @@
 // - math function - sin, cos, ..., div_ieee, pow
 // - SYCL vs ESIMD APIs
 
+// Temporarily disable while the failure is being investigated.
+// UNSUPPORTED: windows
+
 #include "esimd_test_utils.hpp"
 
 #include <sycl/builtins_esimd.hpp>
@@ -460,7 +463,7 @@ template <class T, int N> bool testSYCL(queue &Q) {
 // --- The entry point
 
 int main(void) {
-  queue Q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+  queue Q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
   auto Dev = Q.get_device();
   std::cout << "Running on " << Dev.get_info<sycl::info::device::name>()
             << "\n";

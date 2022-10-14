@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 // REQUIRES: gpu-intel-gen9
-// UNSUPPORTED: gpu-intel-dg1,cuda,hip
+// UNSUPPORTED: gpu-intel-dg1,gpu-intel-dg2,cuda,hip
 // TODO: esimd_emulator fails due to unimplemented 'raw_send' intrinsic
 // XFAIL: esimd_emulator
 // RUN: %clangxx -fsycl %s -o %t.out
@@ -109,7 +109,7 @@ int main(void) {
     // We need that many threads in each group
     range<1> LocalRange{1};
 
-    queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler());
+    queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler());
 
     auto dev = q.get_device();
     std::cout << "Running on " << dev.get_info<sycl::info::device::name>()

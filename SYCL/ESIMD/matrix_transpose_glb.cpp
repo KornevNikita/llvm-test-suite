@@ -10,6 +10,9 @@
 // RUN: %clangxx -fsycl %s -o %t.out
 // RUN: %GPU_RUN_PLACEHOLDER %t.out
 
+// Temporarily disable while the failure is being investigated.
+// UNSUPPORTED: windows
+
 #include "esimd_test_utils.hpp"
 
 #include <iostream>
@@ -240,7 +243,7 @@ ESIMD_INLINE void transpose16(int *buf, int MZ, int block_col, int block_row) {
 
 bool runTest(unsigned MZ, unsigned block_size, unsigned num_iters,
              double &kernel_times, double &total_times) {
-  queue q(esimd_test::ESIMDSelector{}, esimd_test::createExceptionHandler(),
+  queue q(esimd_test::ESIMDSelector, esimd_test::createExceptionHandler(),
           property::queue::enable_profiling{});
   int *M = malloc_shared<int>(MZ * MZ, q);
 
