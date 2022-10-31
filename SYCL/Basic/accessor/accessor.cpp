@@ -895,8 +895,8 @@ int main() {
     try {
       sycl::buffer<int> buf1(vec1.data(), vec1.size());
       sycl::buffer<int> buf2(vec2.data(), vec2.size());
-      auto acc1 = buf1.get_access<sycl::access::mode::read_write>();
-      auto acc2 = buf2.get_access<sycl::access::mode::read_write>();
+      sycl::host_accessor acc1 { buf1 };
+      sycl::host_accessor acc2 { buf2 };
       acc1.swap(acc2);
       acc1[15] = 4;
       acc2[7] = 4;
