@@ -892,7 +892,7 @@ int main() {
   // Test swap() on host_accessor
   {
     std::vector<int> vec1(8), vec2(16);
-    try {
+    {
       sycl::buffer<int> buf1(vec1.data(), vec1.size());
       sycl::buffer<int> buf2(vec2.data(), vec2.size());
       sycl::host_accessor acc1 { buf1 };
@@ -900,15 +900,13 @@ int main() {
       acc1.swap(acc2);
       acc1[15] = 4;
       acc2[7] = 4;
-    } catch (sycl::exception &e) {
-      std::cout << e.what() << std::endl;
     }
     assert(vec1[7] == 4 && vec2[15] == 4);
   }
   // Test swap() on basic accessor
   {
     std::vector<int> vec1(8), vec2(16);
-    try {
+    {
       sycl::buffer<int> buf1(vec1.data(), vec1.size());
       sycl::buffer<int> buf2(vec2.data(), vec2.size());
       sycl::queue q;
@@ -921,15 +919,13 @@ int main() {
           acc2[7] = 4;
         });
       });
-    } catch (sycl::exception &e) {
-      std::cout << e.what() << std::endl;
     }
     assert(vec1[7] == 4 && vec2[15] == 4);
   }
   // Test swap on local_accessor
   {
     std::vector<int> vec1(8), vec2(8);
-    try {
+    {
       sycl::buffer<int> buf1(vec1.data(), vec1.size());
       sycl::buffer<int> buf2(vec2.data(), vec2.size());
 
@@ -945,8 +941,6 @@ int main() {
           }
         });
       });
-    } catch (sycl::exception &e) {
-      std::cout << e.what() << std::endl;
     }
   }
   // Test iterator methods with 1D local_accessor
