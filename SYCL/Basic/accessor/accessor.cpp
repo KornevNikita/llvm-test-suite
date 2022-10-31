@@ -898,7 +898,8 @@ int main() {
       auto acc1 = buf1.get_access<sycl::access::mode::read_write>();
       auto acc2 = buf2.get_access<sycl::access::mode::read_write>();
       acc1.swap(acc2);
-      acc1[15] = acc2[7] = 4;
+      acc1[15] = 4;
+      acc2[7] = 4;
     } catch (sycl::exception &e) {
       std::cout << e.what() << std::endl;
     }
@@ -915,7 +916,10 @@ int main() {
         auto acc1 = buf1.get_access<sycl::access::mode::read_write>(cgh);
         auto acc2 = buf2.get_access<sycl::access::mode::read_write>(cgh);
         acc1.swap(acc2);
-        cgh.single_task([=]() { acc1[15] = acc2[7] = 4; });
+        cgh.single_task([=]() {
+          acc1[15] = 4;
+          acc2[7] = 4;
+        });
       });
     } catch (sycl::exception &e) {
       std::cout << e.what() << std::endl;
