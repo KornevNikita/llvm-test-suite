@@ -88,9 +88,8 @@ template <typename T> void TestAccSizeFuncs(const std::vector<T> &vec) {
     sycl::buffer<size_t> bufRes(res.data(), res.size());
 
     q.submit([&](sycl::handler &cgh) {
-      auto accInput =
-          bufInput.template get_access<sycl::access::mode::read>(cgh);
-      auto accRes = bufRes.get_access<sycl::access::mode::write>(cgh);
+      sycl::accessor accInput(bufInput, cgh);
+      sycl::accessor accRes(bufRes, cgh);
       cgh.single_task([=]() { test(accRes, accInput); });
     });
     q.wait();
@@ -102,7 +101,7 @@ template <typename T> void TestAccSizeFuncs(const std::vector<T> &vec) {
   {
     sycl::buffer<size_t> bufRes(res.data(), res.size());
     q.submit([&](sycl::handler &cgh) {
-      auto accRes = bufRes.get_access<sycl::access::mode::write>(cgh);
+      sycl::accessor accRes(bufRes, cgh);
       sycl::local_accessor<T, 1> locAcc(vec.size(), cgh);
       cgh.single_task([=]() { test(accRes, locAcc); });
     });
@@ -913,8 +912,8 @@ int main() {
       sycl::buffer<int> buf2(vec2.data(), vec2.size());
       sycl::queue q;
       q.submit([&](sycl::handler &cgh) {
-        auto acc1 = buf1.get_access<sycl::access::mode::read_write>(cgh);
-        auto acc2 = buf2.get_access<sycl::access::mode::read_write>(cgh);
+        sycl::accessor acc1(buf1, cgh);
+        sycl::accessor acc2(buf2, cgh);
         acc1.swap(acc2);
         cgh.single_task([=]() {
           acc1[15] = 4;
@@ -926,24 +925,24 @@ int main() {
   }
   // Test swap on local_accessor
   {
-    std::vector<int> vec1(8), vec2(8);
+    size_t size1 = 0, size2 = 0;
     {
-      sycl::buffer<int> buf1(vec1.data(), vec1.size());
-      sycl::buffer<int> buf2(vec2.data(), vec2.size());
+      sycl::buffer<size_t> buf1(&size1, 1);
+      sycl::buffer<size_t> buf2(&size2, 1);
 
       sycl::queue q;
       q.submit([&](sycl::handler &cgh) {
-        sycl::local_accessor<int, 1> locAcc1(8, cgh), locAcc2(8, cgh);
-        // shouldn't fail
+        sycl::accessor acc1(buf1, cgh);
+        sycl::accessor acc2(buf2, cgh);
+        sycl::local_accessor<int, 1> locAcc1(8, cgh), locAcc2(16, cgh);
         locAcc1.swap(locAcc2);
         cgh.single_task([=]() {
-          for (size_t i = 0; i < 8; ++i) {
-            locAcc1[i] = 2;
-            locAcc2[i] = 4;
-          }
+          acc1[0] = locAcc1.size();
+          acc2[0] = locAcc2.size();
         });
       });
     }
+    assert(size1 == 16 && size2 == 8);
   }
   // Test iterator methods with 1D local_accessor
   {
