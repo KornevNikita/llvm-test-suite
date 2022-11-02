@@ -61,54 +61,56 @@ template <typename Acc> struct Wrapper2 {
 template <typename Acc> struct Wrapper3 { Wrapper2<Acc> w2; };
 
 template <typename T> void TestAccSizeFuncs(const std::vector<T> &vec) {
-  std::vector<size_t> res(vec.size()), locRes(vec.size());
-  try {
-    sycl::queue q;
-    sycl::buffer<T> buf(vec.data(), vec.size());
+  auto test = [=](auto &Res, const auto &Acc) {
+    Res[0] = Acc.byte_size();
+    Res[1] = Acc.size();
+    Res[2] = Acc.max_size();
+    Res[3] = size_t(Acc.empty());
+  };
+  auto checkResult = [=](const std::vector<size_t> &Res, size_t MaxSize) {
+    assert(Res[0] == vec.size() * sizeof(T));
+    assert(Res[1] == vec.size());
+    assert(Res[2] == MaxSize);
+    assert(Res[3] == vec.empty());
+  };
+  std::vector<size_t> res(4); // for 4 functions results
+
+  sycl::buffer<T> bufInput(vec.data(), vec.size());
+  sycl::host_accessor accInput(bufInput);
+  test(res, accInput);
+  checkResult(res,
+              std::numeric_limits<
+                  typename sycl::host_accessor<T>::difference_type>::max());
+
+  sycl::queue q;
+  {
+    sycl::buffer<T> bufInput(vec.data(), vec.size());
     sycl::buffer<size_t> bufRes(res.data(), res.size());
-    sycl::buffer<size_t> bufLocRes(locRes.data(), locRes.size());
 
     q.submit([&](sycl::handler &cgh) {
-      auto acc = buf.template get_access<sycl::access::mode::read>(cgh);
+      auto accInput =
+          bufInput.template get_access<sycl::access::mode::read>(cgh);
       auto accRes = bufRes.get_access<sycl::access::mode::write>(cgh);
-      auto accLocRes = bufLocRes.get_access<sycl::access::mode::write>(cgh);
-      sycl::local_accessor<T, 1> localAcc(vec.size(), cgh);
-      cgh.single_task([=]() {
-        accRes[0] = acc.byte_size();
-        accRes[1] = acc.size();
-        accRes[2] = acc.max_size();
-        accRes[3] = size_t(acc.empty());
-        accLocRes[0] = localAcc.byte_size();
-        accLocRes[1] = localAcc.size();
-        accLocRes[2] = localAcc.max_size();
-        accLocRes[3] = size_t(localAcc.empty());
-      });
+      cgh.single_task([=]() { test(accRes, accInput); });
     });
     q.wait();
-
-    auto acc = buf.template get_access<sycl::access::mode::read>();
-    assert(acc.byte_size() == vec.size() * sizeof(T));
-    assert(acc.size() == vec.size());
-    assert(acc.max_size() ==
-           std::numeric_limits<
-               typename sycl::host_accessor<T>::difference_type>::max());
-    assert(acc.empty() == vec.empty());
-  } catch (sycl::exception &e) {
-    std::cout << e.what() << std::endl;
   }
-
-  assert(locRes[0] == vec.size() * sizeof(T));
-  assert(locRes[1] == vec.size());
-  assert(locRes[2] ==
-         std::numeric_limits<
-             typename sycl::local_accessor<T>::difference_type>::max());
-  assert(locRes[3] == vec.empty());
-  assert(res[0] == vec.size() * sizeof(T));
-  assert(res[1] == vec.size());
-  assert(
-      res[2] ==
+  checkResult(
+      res,
       std::numeric_limits<typename sycl::accessor<T>::difference_type>::max());
-  assert(res[3] == vec.empty());
+
+  {
+    sycl::buffer<size_t> bufRes(res.data(), res.size());
+    q.submit([&](sycl::handler &cgh) {
+      auto accRes = bufRes.get_access<sycl::access::mode::write>(cgh);
+      sycl::local_accessor<T, 1> locAcc(vec.size(), cgh);
+      cgh.single_task([=]() { test(accRes, locAcc); });
+    });
+    q.wait();
+  }
+  checkResult(res,
+              std::numeric_limits<
+                  typename sycl::local_accessor<T>::difference_type>::max());
 }
 
 template <typename GlobAcc, typename LocAcc>
