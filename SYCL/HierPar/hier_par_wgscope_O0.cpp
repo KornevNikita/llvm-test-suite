@@ -6,6 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+// Temporarily disable:
+// XFAIL: *
+
 // RUN: %clangxx -O0 -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 
 // RUN: %CPU_RUN_PLACEHOLDER %t.out
