@@ -1,5 +1,5 @@
-// Temporarily disable:
-// XFAIL: *
+// Test hangs on AMD
+// UNSUPPORTED: hip_amd
 
 // RUN: %clangxx -fsycl -fsycl-targets=%sycl_triple %s -O0 -o %t.out
 // RUN: %CPU_RUN_PLACEHOLDER %t.out

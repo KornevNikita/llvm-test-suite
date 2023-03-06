@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Temporarily disable:
-// XFAIL: *
+// Test hangs on AMD
+// UNSUPPORTED: hip_amd
 
 // RUN: %clangxx -O0 -fsycl -fsycl-targets=%sycl_triple %s -o %t.out
 
