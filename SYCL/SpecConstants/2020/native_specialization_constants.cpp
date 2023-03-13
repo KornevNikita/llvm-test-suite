@@ -15,19 +15,19 @@
 
 int main() {
   sycl::queue Q;
-  Q.submit([&](sycl::handler &h) {
-    h.single_task<>([]() {});
-  });
+  Q.submit([&](sycl::handler &h) { h.single_task<>([]() {}); });
 
-  #ifdef JIT
-  auto bundle = sycl::get_kernel_bundle<sycl::bundle_state::input>(Q.get_context());
+#ifdef JIT
+  auto bundle =
+      sycl::get_kernel_bundle<sycl::bundle_state::input>(Q.get_context());
   assert(bundle.native_specialization_constant());
-  #else
-  auto bundle = sycl::get_kernel_bundle<sycl::bundle_state::executable>(Q.get_context());
+#else
+  auto bundle =
+      sycl::get_kernel_bundle<sycl::bundle_state::executable>(Q.get_context());
   // This assert will fail in JIT mode, because there are no images in
   // executable state, so native_specialization_constant() will return true
   assert(!bundle.native_specialization_constant());
-  #endif // JIT
+#endif // JIT
 
   return 0;
 }
